@@ -379,15 +379,25 @@ end
 -- @param value The value of the cookie.
 -- @param domain The domain to apply cookie for.
 -- @param expire_hours Set cookie to expire in given amount of hours.
+-- @param options Cookie generator flags - any/all of {"session", "secure", "HttpOnly"}
+-- * "session" - Cookie will not have an "Expires" attribute; expire_hours is ignored
+-- * "secure"  - Cookie will have the "Secure" attribute - server must run over TLS
+-- * "HttpOnly" - Cookie will have the "HttpOnly" attribute - limits cookie to browsers
+-- * Flag order is not relevant
 -- @note Expiring relies on the requesting browser and may or may not be
 -- respected. Also keep in mind that the servers time is used to calculate
 -- expiry date, so the server should ideally be set up with NTP server.
-function web.RequestHandler:set_cookie(name, value, domain, expire_hours)
+function web.RequestHandler:set_cookie(name, value, domain, expire_hours, options)
+    local optionKeys = {}
+    if options ~= nil then
+        for _, opt in ipairs(options) do optionKeys[opt] = true end
+    end
     self._set_cookie[#self._set_cookie+1] = {
         name = name,
         value = value,
         domain = domain,
-        expire_hours = expire_hours or 1
+        expire_hours = expire_hours or 1,
+        options = optionKeys
     }
 end
 
@@ -565,11 +575,17 @@ function web.RequestHandler:_gen_headers()
                 expire_time = os.time() + (c[i].expire_hours*60*60)
             end
             local expire_str = util.time_format_cookie(expire_time)
-            local cookie = string.format("%s=%s; path=%s; expires=%s",
+            local cookie = string.format("%s=%s; path=%s",
                 escape.escape(c[i].name),
                 escape.escape(c[i].value or ""),
-                c[i].domain or "/",
-                expire_str)
+                c[i].domain or "/")
+            if not c[i].options["session"] then
+	        cookie = cookie .. string.format("; expires=%s",
+		expire_str)
+	    end
+            if c[i].options["HttpOnly"] then
+                cookie = cookie .. "; HttpOnly"
+            end
             self:add_header("Set-Cookie", cookie)
         end
     end
