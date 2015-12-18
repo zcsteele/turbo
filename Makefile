@@ -27,7 +27,7 @@ ALL_LUA_FILES := $(call rwildcard,./,*.lua)
 ALL_LUAC_FILES := $(call rwildcard,./,*.luac)
 MAJVER=  2
 MINVER=  0
-MICVER=  0
+MICVER=  4
 TVERSION= $(MAJVER).$(MINVER).$(MICVER)
 PREFIX ?= /usr/local
 TDEPS= deps
@@ -95,11 +95,11 @@ uninstall:
 	@echo "==== Uninstalling Turbo.lua ===="
 ifeq ($(uname_S),Linux)
 	$(UNINSTALL) $(INSTALL_TFFI_WRAP_SHORT) $(INSTALL_TFFI_WRAP_DYN)
+	$(LDCONFIG) $(INSTALL_LIB)
 endif
 ifeq ($(uname_S),Darwin)
 	$(UNINSTALL) $(INSTALL_TFFI_WRAP_SHORT)
 endif
-	$(LDCONFIG) $(INSTALL_LIB)
 	$(UNINSTALL) $(LUA_MODULEDIR)/turbo/
 	$(UNINSTALL) $(LUAJIT_MODULEDIR)/turbo/
 	$(UNINSTALL) $(INSTALL_BIN)/turbovisor
@@ -113,6 +113,7 @@ install:
 	@echo "==== $(LUAJIT_LIBRARYDIR) and ===="
 	@echo "==== $(LUAJIT_MODULEDIR) ===="
 	$(MKDIR) $(INSTALL_LIB)
+	$(MKDIR) $(INSTALL_BIN)
 	$(MKDIR) $(LUA_MODULEDIR)/turbo
 	$(MKDIR) $(LUAJIT_MODULEDIR)/turbo
 	$(CP_R) turbo/* $(LUA_MODULEDIR)/turbo

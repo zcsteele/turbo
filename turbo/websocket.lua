@@ -309,11 +309,14 @@ if le then
             ws_mask[2] = math.random(0x0, 0xff)
             ws_mask[3] = math.random(0x0, 0xff)
             self.stream:write(ffi.string(ws_mask, 4))
-            self.stream:write(_unmask_payload(ws_mask, data))
+            coroutine.yield (async.task(
+                self.stream.write, self.stream, _unmask_payload(ws_mask, data)))
             return
         end
 
-        self.stream:write(data)
+        -- Do not return until write is flushed to iostream :).
+        coroutine.yield (async.task(
+            self.stream.write, self.stream, data))
     end
 elseif be then
     -- TODO: create websocket.WebSocketStream:_send_frame for BE.
@@ -399,7 +402,7 @@ function websocket.WebSocketHandler:_execute()
     local prot = self.request.headers:get("Sec-WebSocket-Protocol")
     if prot then
         prot = prot:split(",")
-        for i=0, #prot do
+        for i=1, #prot do
             prot[i] = escape.trim(prot[i])
         end
         if #prot ~= 0 then
@@ -597,6 +600,7 @@ function websocket.WebSocketClient:initialize(address, kwargs)
         max_redirects = self.kwargs.max_redirects,
         on_headers = function(http_header)
             http_header:add("Upgrade", "Websocket")
+            http_header:add("Connection", "Upgrade")
             http_header:add("Sec-WebSocket-Key", websocket_key)
             http_header:add("Sec-WebSocket-Version", "13")
             -- WebSocket Sub-Protocol handling...
