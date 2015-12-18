@@ -302,7 +302,7 @@ function web.RequestHandler:redirect(url, permanent)
     if self._headers_written then
         error("Cannot redirect after headers have been written")
     end
-    local status = permanent and 302 or 301
+    local status = permanent and 301 or 302
     self:set_status(status)
     self:add_header("Location", url)
     self:finish()
@@ -361,7 +361,7 @@ function web.RequestHandler:get_secure_cookie(name, default, max_age)
     if max_age then
         max_age = max_age * 1000 -- Get milliseconds.
         local cookietime = tonumber(timestamp)
-        assert(util.getimeofday() - timestamp < max_age, "Cookie has expired.")
+        assert(util.gettimeofday() - timestamp < max_age, "Cookie has expired.")
     end
     local hmac_cmp = hash.HMAC(self.application.kwargs.cookie_secret,
                                string.format("%d|%s|%s",
@@ -558,13 +558,13 @@ function web.RequestHandler:_gen_headers()
     if #self._set_cookie ~= 0 then
         local c = self._set_cookie
         for i = 1, #c do
-            local expire_time
+            local expire_time, expire_str
             if c[i].expire_hours == 0 then
-                expire_time = 0
+                expire_str = "0"
             else
                 expire_time = os.time() + (c[i].expire_hours*60*60)
+                expire_str = util.time_format_cookie(expire_time)
             end
-            local expire_str = util.time_format_cookie(expire_time)
             local cookie = string.format("%s=%s; path=%s; expires=%s",
                 escape.escape(c[i].name),
                 escape.escape(c[i].value or ""),
